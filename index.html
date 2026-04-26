@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HuatuoGPT — Technical Report</title>
+<style>
+  :root {
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --ink: #1a1a2e;
+    --accent: #c62828;
+    --accent2: #1565c0;
+    --muted: #5f6368;
+    --border: #dadce0;
+    --bg: #ffffff;
+    --bar-bg: #e8f0fe;
+    --green: #0d652d;
+    --green-bg: #e6f4ea;
+    --amber: #e37400;
+    --amber-bg: #fef7e0;
+    --red: #c5221f;
+    --red-bg: #fce8e6;
+    --orange: #e8710a;
+    --orange-bg: #fef3e8;
+    --purple: #6c2bd9;
+    --purple-bg: #f3e8ff;
+    --teal: #0b6e5a;
+    --teal-bg: #e0f4f0;
+    --gold: #b8860b;
+    --gold-bg: #fff8e1;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    line-height: 1.6;
+    background: #f8f9fa;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%);
+    color: #fff;
+    padding: 56px 0 48px;
+  }
+  header .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 12px;
+  }
+  header h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  header .sub {
+    font-size: 18px;
+    color: rgba(255,255,255,0.7);
+    font-weight: 400;
+  }
+  header .meta {
+    margin-top: 24px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    font-family: var(--mono);
+  }
+  header .meta span { margin-right: 20px; }
+
+  /* TOC */
+  .toc {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    font-size: 13px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .toc-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+  .toc a {
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .toc a:hover { color: var(--accent); }
+
+  /* SECTIONS */
+  section { padding: 48px 0; }
+  section + section { border-top: 1px solid var(--border); }
+  section h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+  section h2 .num.blue { background: var(--accent2); }
+  section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 24px 0 8px;
+  }
+  section p { margin-bottom: 12px; color: #3c4043; }
+  section ul, section ol { margin: 8px 0 16px 20px; }
+  section li { margin-bottom: 4px; color: #3c4043; }
+  strong { color: var(--ink); }
+  code {
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  /* CALLOUT */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14px;
+    border-left: 4px solid;
+  }
+  .callout.info { background: var(--bar-bg); border-color: var(--accent2); }
+  .callout.warn { background: var(--amber-bg); border-color: var(--amber); }
+  .callout.good { background: var(--green-bg); border-color: var(--green); }
+  .callout.red { background: var(--red-bg); border-color: var(--red); }
+  .callout.verify { background: var(--gold-bg); border-color: var(--gold); }
+
+  /* TABLES */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 16px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead { background: #f8f9fa; }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); text-align: right; }
+  td em { color: var(--muted); font-size: 12px; }
+  td.yes { color: var(--green); font-weight: 600; }
+  td.no { color: var(--red); }
+
+  /* STAT ROW */
+  .stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .stat {
+    flex: 1;
+    min-width: 140px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat .val {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+  .stat .val.accent { color: var(--accent); }
+  .stat .val.blue { color: var(--accent2); }
+  .stat .val.green { color: var(--green); }
+  .stat .val.orange { color: var(--orange); }
+  .stat .val.purple { color: var(--purple); }
+  .stat .val.gold { color: var(--gold); }
+  .stat .desc {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
+  /* BAR CHARTS */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .bar-row .label {
+    width: 160px;
+    font-size: 13px;
+    text-align: right;
+    flex-shrink: 0;
+    color: var(--ink);
+  }
+  .bar-track {
+    flex: 1;
+    height: 22px;
+    background: var(--bar-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    font-family: var(--mono);
+  }
+  .bar-fill.blue { background: var(--accent2); }
+  .bar-fill.green { background: var(--green); }
+  .bar-fill.orange { background: var(--orange); }
+  .bar-fill.purple { background: var(--purple); }
+  .bar-fill.teal { background: var(--teal); }
+  .bar-fill.red { background: var(--red); }
+  .bar-fill.gold { background: var(--gold); }
+
+  /* VERDICT */
+  .verdict {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 16px 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+  .verdict-item {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+  }
+  .verdict-item .icon { font-size: 28px; margin-bottom: 4px; }
+  .verdict-item .heading {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .verdict-item .desc { font-size: 13px; color: #3c4043; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  footer a { color: var(--accent2); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  footer ol { margin: 8px 0 0 20px; }
+  footer li { margin-bottom: 3px; }
+  footer li a { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+
+  /* RESPONSIVE */
+  @media (max-width: 640px) {
+    header h1 { font-size: 28px; }
+    header { padding: 36px 0 28px; }
+    section { padding: 32px 0; }
+    .bar-row .label { width: 100px; font-size: 11px; }
+    .stat .val { font-size: 22px; }
+    .verdict { grid-template-columns: 1fr; }
+    .table-wrap { margin: 12px -24px; border-radius: 0; border-left: none; border-right: none; }
+    .table-wrap table { font-size: 12px; }
+    th, td { padding: 7px 10px; }
+  }
+  @media print {
+    body { background: #fff; }
+    .toc { display: none; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header>
+  <div class="container">
+    <div class="label">Technical Report &middot; April 2026</div>
+    <h1>HuatuoGPT</h1>
+    <div class="sub">Open-Source Chinese Medical LLM — From Research to<br>Hospital Production at 560,000+ Patients</div>
+    <div class="meta">
+      <span>Status: Active (Production in Shenzhen, Wuxi)</span>
+      <span>Source: FreedomIntelligence / CUHKSZ</span>
+      <span>License: Apache-2.0</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ TOC ═══════════ -->
+<nav class="toc">
+  <div class="toc-inner">
+    <a href="#verdict">Verdict</a>
+    <a href="#overview">1. Overview</a>
+    <a href="#lineage">2. Model Lineage</a>
+    <a href="#architecture">3. Architecture</a>
+    <a href="#benchmarks">4. Benchmarks</a>
+    <a href="#deploy">5. Real-World Deployments</a>
+    <a href="#limits">6. Limitations</a>
+    <a href="#compare">7. vs Med-PaLM</a>
+    <a href="#refs">References</a>
+  </div>
+</nav>
+
+<!-- ═══════════ VERDICT ═══════════ -->
+<section id="verdict" style="background:#fff;border-bottom:1px solid var(--border);padding:32px 0;">
+  <div class="container">
+    <h2 style="margin-bottom:12px;">Quick Verdict</h2>
+    <div class="verdict">
+      <div class="verdict-item" style="background:var(--green-bg);">
+        <div class="heading" style="color:var(--green);">Is It Real?</div>
+        <div class="desc"><strong style="color:var(--green);">Yes.</strong> Peer-reviewed (EMNLP 2023). 1.3k GitHub stars. Open-source weights on HuggingFace. Deployed in 12+ Shenzhen hospitals serving 560K+ patients.</div>
+      </div>
+      <div class="verdict-item" style="background:var(--gold-bg);">
+        <div class="heading" style="color:var(--gold);">How Good?</div>
+        <div class="desc"><strong>Mixed.</strong> Excels in Chinese triage/pre-consultation (95%+ accuracy). Beats GPT-4 on TCM. But <strong>fails</strong> standard medical exams like diabetes certification. Outperformed by general LLMs on most Western medicine benchmarks.</div>
+      </div>
+      <div class="verdict-item" style="background:var(--bar-bg);">
+        <div class="heading" style="color:var(--accent2);">Real Use?</div>
+        <div class="desc"><strong>Yes, at scale.</strong> 1.2M+ interactions, 10K daily visits. Smart triage, pre-consultation summaries, hospital navigation. Integrated with DeepSeek-R1 for Chain-of-Thought reasoning.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 1. OVERVIEW ═══════════ -->
+<section id="overview">
+  <div class="container">
+    <h2><span class="num">1</span> Overview</h2>
+
+    <p><strong>HuatuoGPT</strong> (华佗GPT) is an open-source family of Chinese medical large language models developed by the <strong>FreedomIntelligence</strong> group at The Chinese University of Hong Kong, Shenzhen (CUHKSZ) and the Shenzhen Research Institute of Big Data (SRIBD). It was named after <strong>Hua Tuo</strong>, the legendary Chinese physician from the Eastern Han dynasty.</p>
+
+    <p>The project's stated goal is "Towards Taming Language Models To Be a Doctor" — building a professional medical consultation AI for Chinese-speaking populations. Unlike Google's Med-PaLM (closed, proprietary), HuatuoGPT is fully open-source under Apache-2.0 and has achieved real hospital deployment at a scale few medical AI projects can match.</p>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="val accent">1.3K</div>
+        <div class="desc">GitHub Stars</div>
+      </div>
+      <div class="stat">
+        <div class="val blue">1M+</div>
+        <div class="desc">HuggingFace Downloads</div>
+      </div>
+      <div class="stat">
+        <div class="val green">560K</div>
+        <div class="desc">Patients Served</div>
+      </div>
+      <div class="stat">
+        <div class="val gold">EMNLP 2023</div>
+        <div class="desc">Peer-Reviewed Venue</div>
+      </div>
+    </div>
+
+    <div class="callout verify">
+      <strong>Is it real?</strong> Yes — HuatuoGPT is a legitimate, peer-reviewed research project. Its core paper was accepted at <strong>EMNLP 2023</strong> (Findings), a top NLP conference. The model weights, training data, and evaluation code are all publicly available on GitHub and HuggingFace. Unlike many "medical LLM" projects that are just API wrappers, HuatuoGPT has <strong>original research contributions</strong> (RLMF — Reinforcement Learning from Mixed Feedback) and real hospital production deployments.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 2. MODEL LINEAGE ═══════════ -->
+<section id="lineage">
+  <div class="container">
+    <h2><span class="num blue">2</span> Model Lineage</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Version</th><th>Date</th><th>Base Model</th><th>Key Innovation</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>HuatuoGPT v1</strong></td><td>May 2023</td><td>Baichuan-7B / Ziya-LLaMA-13B</td><td>RLMF (RL from Mixed Feedback: ChatGPT + human doctors)</td><td>Paper at EMNLP 2023</td></tr>
+          <tr><td><strong>HuatuoGPT-II</strong></td><td>Nov 2023</td><td>LLaMA 2</td><td>One-stage training; SOTA on TCM benchmarks</td><td>Released; beats GPT-4 on TCM</td></tr>
+          <tr><td><strong>HuatuoGPT-o1-8B</strong></td><td>Dec 2024</td><td>LLaMA 3.1-8B / Qwen2.5-7B</td><td>"Slow thinking" + verifier-guided RL (PPO)</td><td>Best among small medical LLMs</td></tr>
+          <tr><td><strong>HuatuoGPT-R1-32B</strong></td><td>Feb 2025</td><td>DeepSeek-R1 integration</td><td>Chain-of-Thought reasoning for triage</td><td>Deployed in Wuxi hospitals</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>Evolution:</strong> HuatuoGPT started with RLHF-style alignment (v1), then simplified to one-stage training (v2), then added "slow thinking" reasoning (o1), and most recently integrated DeepSeek-R1 for production deployments (R1).
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 3. ARCHITECTURE ═══════════ -->
+<section id="architecture">
+  <div class="container">
+    <h2><span class="num blue">3</span> Architecture &amp; Training</h2>
+
+    <h3>3.1 Data Strategy (v1 — the core innovation)</h3>
+    <p>HuatuoGPT's key insight is using <strong>both</strong> ChatGPT-distilled data <strong>and</strong> real doctor-patient data, then aligning the model through <strong>Reinforcement Learning from Mixed Feedback (RLMF)</strong>:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Data Type</th><th>Source</th><th>Size</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Distilled Instructions</td><td>ChatGPT self-instruct</td><td>61,400</td><td>Broad medical knowledge coverage</td></tr>
+          <tr><td>Real Doctor Instructions</td><td>Real consultation records</td><td>69,768</td><td>Single-round real clinical QA</td></tr>
+          <tr><td>Distilled Conversations</td><td>Two ChatGPTs role-playing</td><td>68,888</td><td>Multi-turn dialogue practice</td></tr>
+          <tr><td>Real Doctor Conversations</td><td>Real doctor-patient records</td><td>25,986</td><td>Authentic diagnostic dialogue patterns</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;color:var(--muted);"><strong>Total SFT data:</strong> ~226,042 examples. Released publicly on HuggingFace.</p>
+
+    <h3>3.2 RLMF — Reinforcement Learning from Mixed Feedback</h3>
+    <p>The reward model is trained on <strong>both</strong> ChatGPT outputs and real doctor consultations, learning the merits of each. The LLM is then aligned through PPO to prefer responses that combine ChatGPT's knowledge breadth with real doctors' interactive diagnostic quality. This is HuatuoGPT's primary research contribution.</p>
+
+    <h3>3.3 HuatuoGPT-o1 — "Slow Thinking" for Medicine</h3>
+    <p>The o1 variant introduces a two-stage reasoning pipeline:</p>
+    <ol>
+      <li><strong>SFT Stage:</strong> Trained on 40,000 verifiable medical problems. A GPT-4o-powered verifier (96.5% accuracy) guides search for complex reasoning trajectories (complex chain-of-thought).</li>
+      <li><strong>RL Stage (PPO):</strong> A dedicated <code>medical_o1_verifier_3B</code> model provides sparse rewards to refine reasoning accuracy.</li>
+    </ol>
+    <p>Output format: <code>## Thinking [detailed reasoning] ## Final Response [concise answer]</code></p>
+
+    <h3>3.4 Training Hyperparameters (v1 SFT)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Framework</td><td>DeepSpeed + accelerate</td></tr>
+          <tr><td>Devices</td><td>8 GPUs, 1 machine</td></tr>
+          <tr><td>Gradient accumulation</td><td>8 steps</td></tr>
+          <tr><td>Max sequence length</td><td>2048 tokens</td></tr>
+          <tr><td>Epochs</td><td>3</td></tr>
+          <tr><td>Batch size (per GPU)</td><td>2 (train), 2 (eval)</td></tr>
+          <tr><td>Learning rate</td><td>5e-5</td></tr>
+          <tr><td>Gradient checkpointing</td><td>Enabled</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 4. BENCHMARKS ═══════════ -->
+<section id="benchmarks">
+  <div class="container">
+    <h2><span class="num blue">4</span> Benchmarks &amp; Evaluation</h2>
+
+    <h3>4.1 Original HuatuoGPT Evaluation</h3>
+    <p>The paper evaluated against a T5-finetuned baseline on three Chinese medical datasets. The key finding: HuatuoGPT achieves <strong>much higher response diversity</strong> (Distinct-1/2: 0.74/0.93 vs T5's 0.41/0.52) at the cost of lower n-gram overlap (BLEU/ROUGE):</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Dataset</th><th>Metric</th><th>T5-Baseline</th><th>HuatuoGPT</th><th>Winner</th></tr>
+        </thead>
+        <tbody>
+          <tr><td rowspan="5"><strong>cMedQA2</strong></td><td>BLEU-4</td><td class="num">5.09</td><td class="num">4.55</td><td class="no">T5</td></tr>
+          <tr><td>ROUGE-1</td><td class="num">27.16</td><td class="num"><strong>29.26</strong></td><td class="yes">HuatuoGPT</td></tr>
+          <tr><td>ROUGE-L</td><td class="num">20.11</td><td class="num">15.46</td><td class="no">T5</td></tr>
+          <tr><td>Distinct-1</td><td class="num">0.41</td><td class="num"><strong>0.74</strong></td><td class="yes">HuatuoGPT</td></tr>
+          <tr><td>Distinct-2</td><td class="num">0.52</td><td class="num"><strong>0.93</strong></td><td class="yes">HuatuoGPT</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.2 Third-Party Benchmarks (2024-2025)</h3>
+    <p>Independent studies show a nuanced picture — HuatuoGPT excels in some areas but underperforms in others:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Study</th><th>Domain</th><th>Version</th><th>Performance</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pediatric Endocrinology (2025)</td><td>91 MCQs (ESAP)</td><td>HuatuoGPT-o1-8B</td><td class="yes">🥇 Best among small medical LLMs (32/91)</td></tr>
+          <tr><td>Diabetes Certification (2025)</td><td>Chinese NCE-CPDC exam</td><td>HuatuoGPT v1</td><td class="no">❌ Failed to pass</td></tr>
+          <tr><td>TCM Subjects (2024)</td><td>29,506 TCM questions</td><td>HuatuoGPT-II</td><td class="yes">✅ Outperforms GPT-4 on TCM</td></tr>
+          <tr><td>Radiology Lung Cancer (2025)</td><td>CT/PET-CT report summarization</td><td>HuatuoGPT</td><td class="no">Not in top performers</td></tr>
+          <tr><td>Myopia Queries (2025)</td><td>39 Chinese-specific questions</td><td>Huatuo-GPT</td><td class="no">Not in top tier</td></tr>
+          <tr><td>Maternal VTE Nursing (2025)</td><td>41-item Delphi framework</td><td>Huatuo</td><td class="no">Weak in treatment &amp; prognosis</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <strong>Pattern:</strong> HuatuoGPT's o1 variant leads among <strong>small open-source</strong> models. But across the board, <strong>general-purpose LLMs</strong> (GPT-4, ERNIE Bot, Tongyi Qianwen) consistently outperform HuatuoGPT on standardized Western medicine benchmarks. Its real strength is in Chinese-language triage and TCM, not general medical QA.
+    </div>
+
+    <h3>4.3 Response Diversity vs. Accuracy Trade-off</h3>
+    <p>The v1 paper's own data reveals a fundamental design choice: HuatuoGPT prioritizes <strong>diverse, natural-sounding responses</strong> over template-like accuracy. Its Distinct scores (0.74/0.93) far exceed the T5 baseline (0.41/0.52), but at the cost of lower BLEU/ROUGE. This is appropriate for conversational triage but problematic for clinical decision support where precision matters.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 5. REAL-WORLD DEPLOYMENTS ═══════════ -->
+<section id="deploy">
+  <div class="container">
+    <h2><span class="num blue">5</span> Real-World Deployments</h2>
+
+    <p>This is where HuatuoGPT stands apart from most medical LLM research projects — it is <strong>actually deployed in production hospitals</strong> with measurable outcomes.</p>
+
+    <h3>5.1 Shenzhen Longgang District (Primary)</h3>
+    <div class="stat-row">
+      <div class="stat">
+        <div class="val green">12</div>
+        <div class="desc">Hospitals Covered</div>
+      </div>
+      <div class="stat">
+        <div class="val blue">560K+</div>
+        <div class="desc">Patients Served</div>
+      </div>
+      <div class="stat">
+        <div class="val gold">1.2M+</div>
+        <div class="desc">Total Interactions</div>
+      </div>
+      <div class="stat">
+        <div class="val orange">10K</div>
+        <div class="desc">Daily User Visits</div>
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>Launch:</strong> April 2024, starting at Longgang District People's Hospital (2nd Affiliated Hospital of CUHKSZ)</li>
+      <li><strong>Coverage:</strong> All 12 district-level public hospitals in Longgang, Shenzhen</li>
+      <li><strong>Access:</strong> Via WeChat mini-program "健康龙岗" (Healthy Longgang)</li>
+    </ul>
+
+    <h3>5.2 Wuxi, Jiangsu Province</h3>
+    <ul>
+      <li><strong>Site:</strong> Jiangnan University Affiliated Hospital</li>
+      <li><strong>Integration:</strong> DeepSeek-R1 (Feb 2025) — "HuatuoGPT-R1-32B"</li>
+      <li><strong>Accuracy:</strong> 95%+ triage accuracy; &gt;90% after DeepSeek integration</li>
+    </ul>
+
+    <h3>5.3 Use Cases</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Use Case</th><th>Description</th><th>Impact</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Smart Triage</strong></td><td>Patients describe symptoms in natural language; AI recommends department</td><td>95%+ accuracy</td></tr>
+          <tr><td><strong>Pre-Consultation</strong></td><td>AI gathers patient info before doctor visit; summarized for physician</td><td>Reduces consultation time</td></tr>
+          <tr><td><strong>Hospital Navigation</strong></td><td>Answers questions about procedures, insurance, cross-region reimbursement</td><td>Improves patient experience</td></tr>
+          <tr><td><strong>Health Education</strong></td><td>24/7 reliable medical information</td><td>Always available</td></tr>
+          <tr><td><strong>Appointment Booking</strong></td><td>Integrated with hospital registration system</td><td>One-click scheduling</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout good">
+      <strong>Deployment Verdict:</strong> HuatuoGPT has <strong>genuine, measurable production impact</strong> — this is not a lab demo. The 560K+ patient count and 95%+ triage accuracy are credible for the narrow use case of Chinese hospital triage/pre-consultation. The team explicitly positions it as a <strong>doctor-assisting tool</strong>, not a replacement.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 6. LIMITATIONS ═══════════ -->
+<section id="limits">
+  <div class="container">
+    <h2><span class="num blue">6</span> Limitations</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Category</th><th>Detail</th><th>Severity</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Exams &amp; Benchmarks</strong></td><td>Fails standard medical certification exams. Outperformed by general LLMs on most Western medicine benchmarks</td><td>High</td></tr>
+          <tr><td><strong>Medical Jargon</strong></td><td>Authors acknowledge risk of misunderstandings with complex conditions</td><td>High</td></tr>
+          <tr><td><strong>Hallucination</strong></td><td>"Can generate responses that do not make sense or are completely unrelated" (direct from paper)</td><td>High</td></tr>
+          <tr><td><strong>Bias</strong></td><td>Training data biases may perpetuate medical treatment biases</td><td>Medium</td></tr>
+          <tr><td><strong>Language</strong></td><td>Primarily Chinese; English capabilities limited</td><td>Medium</td></tr>
+          <tr><td><strong>Model Size</strong></td><td>Max 13B params (v1), 72B (o1) — far smaller than GPT-4 or Med-PaLM</td><td>Medium</td></tr>
+          <tr><td><strong>Sensitivity</strong></td><td>Performance sensitive to prompt phrasing; position bias in reasoning tasks</td><td>Medium</td></tr>
+          <tr><td><strong>Explainability</strong></td><td>Open-source but limited clinical audit tooling compared to MedLM</td><td>Low-Med</td></tr>
+          <tr><td><strong>Diagnosis Scope</strong></td><td>Explicitly not designed for clinical diagnosis/treatment recommendations</td><td>By Design</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout red">
+      <strong>Important Caveat:</strong> HuatuoGPT is positioned as a <strong>triage and pre-consultation assistant</strong>, not a diagnostic tool. The authors explicitly warn against using it for clinical decision-making. Its production deployments are limited to front-desk tasks (department recommendation, appointment booking, FAQ) — not diagnosis or treatment.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 7. vs MED-PaLM ═══════════ -->
+<section id="compare">
+  <div class="container">
+    <h2><span class="num blue">7</span> HuatuoGPT vs. Med-PaLM</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>HuatuoGPT</th><th>Med-PaLM</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Developer</strong></td><td>CUHKSZ / SRIBD (academic)</td><td>Google Research / DeepMind</td></tr>
+          <tr><td><strong>Open Source</strong></td><td>Yes — Apache-2.0, full weights + data</td><td>No — proprietary, API only (MedLM)</td></tr>
+          <tr><td><strong>Peer Review</strong></td><td>EMNLP 2023 (Findings)</td><td>Nature Medicine, NEJM AI</td></tr>
+          <tr><td><strong>Model Size</strong></td><td>7B-72B (open), 32B (R1 variant)</td><td>340B-562B (closed)</td></tr>
+          <tr><td><strong>MedQA Score</strong></td><td>Not published for Chinese models</td><td>86.5% (USMLE)</td></tr>
+          <tr><td><strong>Primary Language</strong></td><td>Chinese</td><td>English (60+ languages supported)</td></tr>
+          <tr><td><strong>Strengths</strong></td><td>Chinese triage, TCM, open access, real hospital deployment at scale</td><td>Broad medical QA, multimodal, safety framework, enterprise compliance</td></tr>
+          <tr><td><strong>Weaknesses</strong></td><td>Mediocre exam performance, smaller models, limited scope</td><td>Closed, expensive, Western-biased, cloud-dependent</td></tr>
+          <tr><td><strong>Production Scale</strong></td><td>12 hospitals, 560K patients (China)</td><td>50+ institutions (global)</td></tr>
+          <tr><td><strong>Hardware Need</strong></td><td>Consumer GPUs (8x for training)</td><td>Large TPU pods</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>Bottom Line:</strong> These are complementary rather than competing systems. Med-PaLM represents the frontier of medical AI capability — expert-level, multimodal, globally deployed. HuatuoGPT represents the frontier of <strong>accessible, open-source, Chinese-language medical AI</strong> with real production impact. A hospital in rural China can actually run HuatuoGPT; only well-funded institutions can afford MedLM.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ REFERENCES ═══════════ -->
+<footer id="refs">
+  <div class="container">
+    <h2 style="font-size:16px;margin-bottom:12px;font-weight:600;">References</h2>
+    <p>Primary sources used in this report:</p>
+    <ol>
+      <li><a href="https://arxiv.org/abs/2305.15075" target="_blank" rel="noopener">Zhang et al. "HuatuoGPT, towards Taming Language Model to Be a Doctor." <em>EMNLP 2023 Findings</em>. arXiv:2305.15075</a></li>
+      <li><a href="https://arxiv.org/abs/2311.09774" target="_blank" rel="noopener">Chen et al. "HuatuoGPT-II, One-stage Training for Medical Adaption of LLMs." arXiv:2311.09774</a></li>
+      <li><a href="https://arxiv.org/abs/2412.18925" target="_blank" rel="noopener">Chen et al. "HuatuoGPT-o1, Towards Medical Complex Reasoning with LLMs." arXiv:2412.18925</a></li>
+      <li><a href="https://github.com/FreedomIntelligence/HuatuoGPT" target="_blank" rel="noopener">FreedomIntelligence. "HuatuoGPT" — GitHub repository.</a></li>
+      <li><a href="https://huggingface.co/FreedomIntelligence" target="_blank" rel="noopener">FreedomIntelligence. Models and datasets on HuggingFace.</a></li>
+      <li><a href="https://sznews.com/news/content/2025-03/07/content_31482557.htm" target="_blank" rel="noopener">Shenzhen News. "World's first vertical medical LLM HuatuoGPT deployed in 11 Longgang hospitals." March 2025.</a></li>
+      <li><a href="https://wxrb.com:8081/doc/2025/03/14/392982.shtml" target="_blank" rel="noopener">Wuxi Daily. "HuatuoGPT + DeepSeek AI triage." March 2025.</a></li>
+      <li><a href="https://www.marktechpost.com/2024/12/30/meet-huatuogpt-o1-a-medical-llm-designed-for-advanced-medical-reasoning/" target="_blank" rel="noopener">MarkTechPost. "Meet HuatuoGPT-o1: A Medical LLM Designed for Advanced Medical Reasoning." Dec 2024.</a></li>
+    </ol>
+    <p style="margin-top:16px;">Built with researched information from peer-reviewed publications, GitHub, HuggingFace, and Chinese news sources. Data current as of April 2026.</p>
+  </div>
+</footer>
+
+</body>
+</html>
