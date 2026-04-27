@@ -343,6 +343,7 @@
     <a href="#deploy">5. Real-World Deployments</a>
     <a href="#limits">6. Limitations</a>
     <a href="#compare">7. vs Med-PaLM</a>
+    <a href="#try">8. How to Try</a>
     <a href="#refs">References</a>
   </div>
 </nav>
@@ -656,6 +657,98 @@
   </div>
 </section>
 
+<!-- ═══════════ 8. HOW TO TRY ═══════════ -->
+<section id="try">
+  <div class="container">
+    <h2><span class="num blue">8</span> How to Try HuatuoGPT</h2>
+
+    <p>There is <strong>no official public API</strong> for HuatuoGPT. The original demo site (huatuogpt.cn) appears inactive. However, all model weights are open-source and can be run locally or deployed as a self-hosted API. Here are the available options:</p>
+
+    <h3>8.1 Option 1: Direct Inference via HuggingFace Transformers (Easiest)</h3>
+    <p>Run the o1-7B (Chinese + English) or o1-8B (English) model locally with a few lines of Python:</p>
+
+    <div class="callout info">
+      <strong>Hardware Note:</strong> 7B/8B models require ~16GB GPU RAM (consumer GPU like RTX 3090/4090). 70B/72B models need multi-GPU setups. All are Apache-2.0 licensed.
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Backbone</th><th>Language</th><th>HuggingFace</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>HuatuoGPT-o1-7B</td><td>Qwen2.5-7B</td><td>English + Chinese</td><td><a href="https://huggingface.co/FreedomIntelligence/HuatuoGPT-o1-7B" target="_blank" rel="noopener">FreedomIntelligence/HuatuoGPT-o1-7B</a></td></tr>
+          <tr><td>HuatuoGPT-o1-8B</td><td>LLaMA 3.1-8B</td><td>English</td><td><a href="https://huggingface.co/FreedomIntelligence/HuatuoGPT-o1-8B" target="_blank" rel="noopener">FreedomIntelligence/HuatuoGPT-o1-8B</a></td></tr>
+          <tr><td>HuatuoGPT-o1-70B</td><td>LLaMA 3.1-70B</td><td>English</td><td><a href="https://huggingface.co/FreedomIntelligence/HuatuoGPT-o1-70B" target="_blank" rel="noopener">FreedomIntelligence/HuatuoGPT-o1-70B</a></td></tr>
+          <tr><td>HuatuoGPT-o1-72B</td><td>Qwen2.5-72B</td><td>English + Chinese</td><td><a href="https://huggingface.co/FreedomIntelligence/HuatuoGPT-o1-72B" target="_blank" rel="noopener">FreedomIntelligence/HuatuoGPT-o1-72B</a></td></tr>
+          <tr><td>HuatuoGPT-Vision-7B</td><td>Qwen2.5-VL</td><td>Multimodal</td><td><a href="https://huggingface.co/FreedomIntelligence/HuatuoGPT-Vision-7B-Qwen2.5VL" target="_blank" rel="noopener">Vision model on HF</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin:12px 0;"><strong>Inference code (o1-7B for Chinese):</strong></p>
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;">from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model = AutoModelForCausalLM.from_pretrained(
+    "FreedomIntelligence/HuatuoGPT-o1-7B",
+    torch_dtype="auto",
+    device_map="auto"
+)
+tokenizer = AutoTokenizer.from_pretrained(
+    "FreedomIntelligence/HuatuoGPT-o1-7B"
+)
+
+input_text = "我最近总是咳嗽，怎么办？"
+messages = [{"role": "user", "content": input_text}]
+
+inputs = tokenizer(
+    tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    ),
+    return_tensors="pt"
+).to(model.device)
+
+outputs = model.generate(**inputs, max_new_tokens=2048)
+print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+# Output format:
+# ## Thinking [reasoning process]
+# ## Final Response [answer]
+</pre>
+
+    <h3>8.2 Option 2: Self-Hosted API via vLLM or SGLang (Production)</h3>
+    <p>For API-style access, deploy with <strong>SGLang</strong> (recommended by the authors) which provides an OpenAI-compatible endpoint:</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;"># Start SGLang server with HuatuoGPT-o1-8B
+python -m sglang.launch_server \
+    --model-path FreedomIntelligence/HuatuoGPT-o1-8B \
+    --port 2835 \
+    --mem-fraction-static 0.8
+
+# Then query via OpenAI-compatible API:
+curl http://localhost:2835/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "FreedomIntelligence/HuatuoGPT-o1-8B",
+    "messages": [{"role": "user", "content": "How to stop a cough?"}]
+  }'
+</pre>
+
+    <h3>8.3 Option 3: Original HuatuoGPT v1 (Research Version)</h3>
+    <p>The original HuatuoGPT (v1, EMNLP 2023) is also open source:</p>
+    <ul>
+      <li><strong>GitHub:</strong> <a href="https://github.com/FreedomIntelligence/HuatuoGPT" target="_blank" rel="noopener">FreedomIntelligence/HuatuoGPT</a></li>
+      <li><strong>HuatuoGPT-7B</strong> (Baichuan-7B-based): Full weights on HuggingFace</li>
+      <li><strong>HuatuoGPT-13B</strong> (LLaMA-based): Delta weights only; requires running <code>apply_delta.py</code> with original LLaMA weights</li>
+      <li><strong>CLI demo:</strong> <code>pip install -r requirements.txt && python huatuo_cli_demo_stream.py --model-name $model_dir</code></li>
+      <li><strong>SFT data:</strong> <a href="https://huggingface.co/datasets/FreedomIntelligence/HuatuoGPT-sft-data-v1" target="_blank" rel="noopener">HuatuoGPT-sft-data-v1</a> (~226K examples, Apache-2.0)</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>No Free Hosted API:</strong> There is no ChatGPT-style website or API key to try HuatuoGPT instantly. Unlike Med-PaLM (available as MedLM on Google Cloud), HuatuoGPT requires self-hosting. The trade-off is full control, no per-token cost, and Apache-2.0 license freedom. For a quick test, use the HuggingFace transformers snippet above — it runs on any GPU with 16GB+ VRAM.
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════ REFERENCES ═══════════ -->
 <footer id="refs">
   <div class="container">
@@ -670,6 +763,8 @@
       <li><a href="https://sznews.com/news/content/2025-03/07/content_31482557.htm" target="_blank" rel="noopener">Shenzhen News. "World's first vertical medical LLM HuatuoGPT deployed in 11 Longgang hospitals." March 2025.</a></li>
       <li><a href="https://wxrb.com:8081/doc/2025/03/14/392982.shtml" target="_blank" rel="noopener">Wuxi Daily. "HuatuoGPT + DeepSeek AI triage." March 2025.</a></li>
       <li><a href="https://www.marktechpost.com/2024/12/30/meet-huatuogpt-o1-a-medical-llm-designed-for-advanced-medical-reasoning/" target="_blank" rel="noopener">MarkTechPost. "Meet HuatuoGPT-o1: A Medical LLM Designed for Advanced Medical Reasoning." Dec 2024.</a></li>
+      <li><a href="https://huggingface.co/FreedomIntelligence/HuatuoGPT-o1-8B" target="_blank" rel="noopener">HuatuoGPT-o1-8B on HuggingFace — model card and inference code.</a></li>
+      <li><a href="https://github.com/FreedomIntelligence/HuatuoGPT-o1" target="_blank" rel="noopener">FreedomIntelligence. "HuatuoGPT-o1" — GitHub repository (SGLang deployment scripts).</a></li>
     </ol>
     <p style="margin-top:16px;">Built with researched information from peer-reviewed publications, GitHub, HuggingFace, and Chinese news sources. Data current as of April 2026.</p>
   </div>
