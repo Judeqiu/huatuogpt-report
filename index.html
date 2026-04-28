@@ -344,6 +344,7 @@
     <a href="#limits">6. Limitations</a>
     <a href="#compare">7. vs Med-PaLM</a>
     <a href="#try">8. How to Try</a>
+    <a href="#hosting">9. Hosting &amp; Cost</a>
     <a href="#refs">References</a>
   </div>
 </nav>
@@ -745,6 +746,131 @@ curl http://localhost:2835/v1/chat/completions \
 
     <div class="callout warn">
       <strong>No Free Hosted API:</strong> There is no ChatGPT-style website or API key to try HuatuoGPT instantly. Unlike Med-PaLM (available as MedLM on Google Cloud), HuatuoGPT requires self-hosting. The trade-off is full control, no per-token cost, and Apache-2.0 license freedom. For a quick test, use the HuggingFace transformers snippet above — it runs on any GPU with 16GB+ VRAM.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 9. HOSTING & COST ═══════════ -->
+<section id="hosting">
+  <div class="container">
+    <h2><span class="num blue">9</span> Cloud Hosting &amp; Cost Estimation</h2>
+
+    <p>HuatuoGPT models (7B-72B) can be hosted on any GPU cloud. Since all models are Apache-2.0 and use standard HuggingFace/vLLM formats, you are <strong>not locked into any provider</strong>. Below is a breakdown of options across cost tiers.</p>
+
+    <h3>9.1 Model GPU Requirements</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Min GPU Memory</th><th>Recommended GPU</th><th>Quantized Option</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>HuatuoGPT-o1-7B / 8B</td><td>16 GB (FP16)</td><td>RTX 4090 (24GB), A10G (24GB)</td><td>8 GB (INT4) — T4, RTX 3090</td></tr>
+          <tr><td>HuatuoGPT-o1-70B / 72B</td><td>140 GB (FP16)</td><td>2-4× A100 80GB / H100</td><td>40 GB (INT4) — 1× A100</td></tr>
+          <tr><td>HuatuoGPT-Vision-7B</td><td>24 GB (FP16)</td><td>A10G, L40S</td><td>12 GB (INT4)</td></tr>
+          <tr><td>HuatuoGPT v1-13B (LLaMA)</td><td>26 GB (FP16)</td><td>A10G (24GB), RTX 4090</td><td>8 GB (INT4)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.2 Provider Comparison (Sorted by Cost, Low → High)</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>GPU Options</th><th>$/hr (7B model)</th><th>$/month (always-on)</th><th>Best For</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Vast.ai</strong></td><td>RTX 3090/4090, A100, H100</td><td>$0.16-0.44 (spot)</td><td><strong>$115-320</strong></td><td>Cheapest; variable reliability</td></tr>
+          <tr><td><strong>RunPod</strong></td><td>RTX 4090 ($0.44), A100 ($0.89-1.19), H100 ($1.99-2.79)</td><td>$0.44 (RTX 4090)</td><td><strong>$320</strong></td><td>Best value; one-click vLLM templates</td></tr>
+          <tr><td><strong>Lambda Labs</strong></td><td>A100 ($1.10-1.79), H100 ($2.49-2.99)</td><td>$1.10 (A100)</td><td><strong>$800</strong></td><td>Production-grade, zero egress</td></tr>
+          <tr><td><strong>DeepInfra</strong>*</td><td>Managed A100 ($0.89/hr dedicated)</td><td>$0.89 (dedicated)</td><td><strong>$640</strong></td><td>Managed API, SOC 2</td></tr>
+          <tr><td><strong>Modal</strong>*</td><td>A10G ($1.10), A100 ($1.50-2.10), H100 ($3.20-4.50)</td><td>$1.10 (A10G)</td><td><strong>$800</strong></td><td>Best developer DX; scale-to-zero</td></tr>
+          <tr><td><strong>Nebius AI</strong></td><td>H100 ($2.95), H200 ($3.50), B200 ($5.50)</td><td>$2.95 (H100)</td><td><strong>$2,150</strong></td><td>Latest hardware, free egress</td></tr>
+          <tr><td><strong>SF Compute</strong></td><td>H100 ($1.45-1.50)</td><td>$1.45 (H100)</td><td><strong>$1,055</strong></td><td>Cheapest H100; reservation model</td></tr>
+          <tr><td><strong>FluidStack</strong></td><td>H100 ($2.10), A100</td><td>$2.10 (H100)</td><td><strong>$1,530</strong></td><td>Aggregated capacity</td></tr>
+          <tr style="background:#fce8e6;"><td><strong>AWS</strong></td><td>A100 (p4d: $2.70), H100 (p5: $3.90-7.57)</td><td>$2.70 (A100 spot)</td><td><strong>$1,970</strong></td><td>Enterprise; complex pricing, egress fees</td></tr>
+          <tr style="background:#fce8e6;"><td><strong>GCP</strong></td><td>A100 (a2: $3.60), H100 (a3: $3.00-4.00)</td><td>$3.60 (A100)</td><td><strong>$2,630</strong></td><td>Enterprise; sustained-use discounts</td></tr>
+          <tr style="background:#fce8e6;"><td><strong>Azure</strong></td><td>A100 (NC: $3.50-4.20), H100 (ND: $6.98-13.00)</td><td>$3.50 (A100)</td><td><strong>$2,555</strong></td><td>Most expensive; Microsoft ecosystem</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:12px;color:var(--muted);">* Serverless providers: you only pay for compute time when the model is actively serving requests, not for idle time. Monthly estimates assume 24/7 dedicated GPU.</p>
+
+    <h3>9.3 Cost Scenarios for HuatuoGPT-o1-7B</h3>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="val green">$0.44/hr</div>
+        <div class="desc">RunPod RTX 4090</div>
+      </div>
+      <div class="stat">
+        <div class="val blue">$0.89/hr</div>
+        <div class="desc">DeepInfra Managed A100</div>
+      </div>
+      <div class="stat">
+        <div class="val orange">$0.20/hr</div>
+        <div class="desc">Vast.ai RTX 3090 (spot)</div>
+      </div>
+      <div class="stat">
+        <div class="val purple">$1.10/hr</div>
+        <div class="desc">Lambda Labs A100</div>
+      </div>
+    </div>
+
+    <h3>9.4 Monthly Cost Projections</h3>
+
+    <div style="margin:16px 0">
+      <p style="font-size:13px;margin-bottom:8px;"><strong>HuatuoGPT-o1-7B (single GPU):</strong></p>
+      <div class="bar-row"><span class="label" style="width:170px;">Vast.ai spot RTX 3090</span><div class="bar-track"><div class="bar-fill green" style="width:8%;font-size:10px;padding-right:4px;">$115</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">RunPod RTX 4090</span><div class="bar-track"><div class="bar-fill blue" style="width:23%;font-size:10px;padding-right:4px;">$320</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">DeepInfra A100 managed</span><div class="bar-track"><div class="bar-fill teal" style="width:46%;font-size:10px;padding-right:4px;">$640</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">Lambda Labs A100</span><div class="bar-track"><div class="bar-fill purple" style="width:58%;font-size:10px;padding-right:4px;">$800</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">AWS A100 (p4d spot)</span><div class="bar-track"><div class="bar-fill orange" style="width:100%;font-size:10px;padding-right:4px;">$1,970</div></div></div>
+    </div>
+
+    <div style="margin:16px 0">
+      <p style="font-size:13px;margin-bottom:8px;"><strong>HuatuoGPT-o1-72B (multi-GPU):</strong></p>
+      <div class="bar-row"><span class="label" style="width:170px;">Vast.ai 2× A100 (spot)</span><div class="bar-track"><div class="bar-fill green" style="width:15%;font-size:10px;padding-right:4px;">$1,850</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">RunPod 2× A100</span><div class="bar-track"><div class="bar-fill blue" style="width:21%;font-size:10px;padding-right:4px;">$2,590</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">Lambda 2× A100</span><div class="bar-track"><div class="bar-fill purple" style="width:26%;font-size:10px;padding-right:4px;">$3,200</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">AWS 2× A100 (spot)</span><div class="bar-track"><div class="bar-fill orange" style="width:63%;font-size:10px;padding-right:4px;">$7,880</div></div></div>
+      <div class="bar-row"><span class="label" style="width:170px;">Azure 2× A100</span><div class="bar-track"><div class="bar-fill red" style="width:100%;font-size:10px;padding-right:4px;">$12,300</div></div></div>
+    </div>
+
+    <h3>9.5 Cost Optimization Strategies</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Strategy</th><th>Savings</th><th>How</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Scale to zero</strong></td><td>50-90%</td><td>Use serverless providers (RunPod, Modal, DeepInfra) — no cost when idle</td></tr>
+          <tr><td><strong>Quantization (INT4)</strong></td><td>4× memory reduction</td><td>Run 7B model on T4 ($0.30-0.50/hr) instead of A100 ($1.10+/hr)</td></tr>
+          <tr><td><strong>Spot/interruptible</strong></td><td>50-70%</td><td>Vast.ai, RunPod Community, AWS Spot — fine for non-critical apps</td></tr>
+          <tr><td><strong>Free egress providers</strong></td><td>20-40% on bandwidth</td><td>Lambda, RunPod, Nebius — avoid AWS/GCP egress fees ($0.09-0.12/GB)</td></tr>
+          <tr><td><strong>Batched inference</strong></td><td>2-5× throughput</td><td>vLLM continuous batching — more requests per second per GPU</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.6 Chinese Cloud Providers (If Hosting in China)</h3>
+    <p>Chinese GPU prices are currently in an <strong>upcycle (+5-40% hikes in 2026)</strong> due to AI demand and hardware shortages. H100 lease rates rose from ~$1.70/hr to ~$2.35/hr over 6 months. Key providers:</p>
+    <ul>
+      <li><strong>Alibaba Cloud (Aliyun):</strong> Pingtouge compute cards; prices recently +5-34%. Best availability in China.</li>
+      <li><strong>Tencent Cloud:</strong> Hunyuan model API pricing surged ~460%; raw GPU compute also +5%. Strong inference infrastructure.</li>
+      <li><strong>Baidu Cloud:</strong> AI compute +5-30% hike. Integrated with ERNIE ecosystem.</li>
+      <li><strong>Domestic GPU (Huawei Ascend, etc.):</strong> ~80,000 RMB/month per card — more expensive than international options but no export restriction risk.</li>
+    </ul>
+
+    <h3>9.7 Recommendation</h3>
+
+    <div class="callout info">
+      <strong>For the 7B model (recommended starting point):</strong> Use <strong>RunPod RTX 4090 ($0.44/hr, ~$320/mo)</strong> — it's the best price-to-reliability ratio for a Chinese medical chatbot. Deploy with vLLM (one-click template available) for OpenAI-compatible API. If traffic is sporadic, use serverless (RunPod serverless or Modal) to pay only for actual inference time, bringing costs down to <strong>$50-150/mo</strong> for light usage.
+    </div>
+    <div class="callout warn">
+      <strong>For the 72B model:</strong> Budget <strong>$2,500-4,000/mo</strong> for 2× A100. Consider quantizing to INT4 to run on a single A100 80GB ($1.10-1.79/hr, ~$800-1,300/mo) instead. The quality difference is usually negligible for Chinese medical triage.
     </div>
   </div>
 </section>
