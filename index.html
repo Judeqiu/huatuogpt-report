@@ -345,6 +345,7 @@
     <a href="#compare">7. vs Med-PaLM</a>
     <a href="#try">8. How to Try</a>
     <a href="#hosting">9. Hosting &amp; Cost</a>
+    <a href="#interact">10. Using the API</a>
     <a href="#refs">References</a>
   </div>
 </nav>
@@ -871,6 +872,135 @@ curl http://localhost:2835/v1/chat/completions \
     </div>
     <div class="callout warn">
       <strong>For the 72B model:</strong> Budget <strong>$2,500-4,000/mo</strong> for 2× A100. Consider quantizing to INT4 to run on a single A100 80GB ($1.10-1.79/hr, ~$800-1,300/mo) instead. The quality difference is usually negligible for Chinese medical triage.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 10. USING THE API ═══════════ -->
+<section id="interact">
+  <div class="container">
+    <h2><span class="num blue">10</span> Interacting with Deployed Models</h2>
+
+    <p>When your HuatuoGPT model is running on a cloud GPU, you interact with it through an <strong>HTTP API</strong>. Both vLLM and SGLang (the recommended deployment frameworks) expose an <strong>OpenAI-compatible</strong> endpoint — meaning you can use the same <code>openai</code> Python library, <code>curl</code>, or any OpenAI SDK to talk to your model.</p>
+
+    <h3>10.1 OpenAI-Compatible API (vLLM / SGLang)</h3>
+    <p>Once deployed, your server listens on a port (default <code>8000</code> for vLLM, custom for SGLang). The API is identical to OpenAI's <code>/v1/chat/completions</code>:</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;">curl https://your-instance:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "FreedomIntelligence/HuatuoGPT-o1-7B",
+    "messages": [
+      {"role": "system", "content": "你是一个专业的医疗助手。"},
+      {"role": "user", "content": "我最近总是咳嗽，怎么办？"}
+    ],
+    "max_tokens": 2048,
+    "temperature": 0.7
+  }'</pre>
+
+    <h3>10.2 Using the OpenAI Python SDK</h3>
+    <p>Point the SDK at your endpoint by changing <code>base_url</code>:</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;">from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://your-instance:8000/v1",  # your cloud GPU endpoint
+    api_key="not-needed"                         # vLLM/SGLang don't require a key
+)
+
+response = client.chat.completions.create(
+    model="FreedomIntelligence/HuatuoGPT-o1-7B",
+    messages=[
+        {"role": "system", "content": "你是一个专业的医疗助手。"},
+        {"role": "user", "content": "我最近总是咳嗽，怎么办？"}
+    ],
+    max_tokens=2048,
+    temperature=0.7
+)
+
+print(response.choices[0].message.content)</pre>
+
+    <h3>10.3 Streaming Responses</h3>
+    <p>For a ChatGPT-like typing experience, add <code>stream=True</code>:</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;">stream = client.chat.completions.create(
+    model="FreedomIntelligence/HuatuoGPT-o1-7B",
+    messages=[{"role": "user", "content": "咳嗽需要注意什么？"}],
+    stream=True
+)
+
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)</pre>
+
+    <h3>10.4 Response Format (HuatuoGPT-o1)</h3>
+    <p>The o1 models output a two-part response. The <code>## Thinking</code> block contains the model's reasoning process; <code>## Final Response</code> is the actual answer. You can display both (for transparency) or strip the thinking block (for a clean UI):</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;"># Example raw output from the API:
+## Thinking
+患者主诉咳嗽，需要鉴别常见原因：1) 上呼吸道感染...
+2) 过敏... 3) 慢性支气管炎... 建议先排除感染...
+
+## Final Response
+根据您的描述，咳嗽可能由上呼吸道感染引起。
+建议多喝温水，注意休息。如果咳嗽持续超过一周
+或伴有发热、胸痛，请及时就医。</pre>
+
+    <h3>10.5 Using a Web Chat UI</h3>
+    <p>If you want a visual chat interface instead of raw API calls, these open-source UIs connect to any OpenAI-compatible endpoint:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>UI</th><th>Description</th><th>Deploy</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Chatbot UI</strong></td><td>Polished ChatGPT clone by mckaywrigley</td><td><code>docker run -p 3000:3000 ghcr.io/mckaywrigley/chatbot-ui</code></td></tr>
+          <tr><td><strong>Open WebUI</strong></td><td>Feature-rich (auth, RAG, file upload), formerly Ollama WebUI</td><td><code>docker run -p 3000:8080 ghcr.io/open-webui/open-webui</code></td></tr>
+          <tr><td><strong>LobeChat</strong></td><td>Modern UI with plugin system, multi-model support</td><td><code>docker run -p 3210:3210 lobehub/lobe-chat</code></td></tr>
+          <tr><td><strong>Gradio</strong></td><td>Quick prototyping UI</td><td>Python: <code>import gradio as gr</code></td></tr>
+          <tr><td><strong>Text Generation WebUI</strong></td><td>oobabooga's popular all-in-one</td><td>GitHub: oobabooga/text-generation-webui</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>10.6 Quick Architecture Diagram</h3>
+    <div style="background:#f5f5f5;border-radius:8px;padding:20px;font-family:var(--mono);font-size:12px;line-height:2;overflow-x:auto;white-space:nowrap;">
+      <span style="color:var(--accent2);">User/Client</span>
+      <span style="color:var(--muted);"> ──HTTP──▶ </span>
+      <span style="color:var(--green);">[Web UI: Open WebUI / LobeChat]</span>
+      <span style="color:var(--muted);"> ──API──▶ </span>
+      <span style="color:var(--purple);">[vLLM / SGLang Server]</span>
+      <span style="color:var(--muted);"> ──▶ </span>
+      <span style="color:var(--orange);">[GPU: RTX 4090 / A100]</span>
+      <br>
+      <span style="color:var(--muted);">                              │</span>
+      <span style="color:var(--muted);">                              ▼</span>
+      <br>
+      <span style="color:var(--muted);">        </span><span style="color:var(--teal);">https://your-instance:8000/v1/chat/completions</span>
+      <br>
+      <span style="color:var(--muted);">        POST { messages, max_tokens, temperature }</span>
+    </div>
+
+    <h3>10.7 Production Considerations</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Concern</th><th>Solution</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Authentication</strong></td><td>Most providers offer private networking; add an API gateway (NGINX/Kong) with auth in front of vLLM</td></tr>
+          <tr><td><strong>HTTPS</strong></td><td>Use Cloudflare Tunnel, Let's Encrypt + NGINX reverse proxy, or provider-native load balancer</td></tr>
+          <tr><td><strong>Rate limiting</strong></td><td>vLLM has built-in request scheduling; add Redis-based rate limiting at the gateway layer for user-level quotas</td></tr>
+          <tr><td><strong>Monitoring</strong></td><td>Export Prometheus metrics from vLLM; track tokens/sec, latency P50/P95, GPU utilization</td></tr>
+          <tr><td><strong>Multi-user</strong></td><td>Open WebUI has built-in auth and user management. LobeChat supports multi-user via NextAuth.</td></tr>
+          <tr><td><strong>Cost control</strong></td><td>Set max_tokens limits, use token counting middleware, monitor usage per user</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>Key Point:</strong> Because vLLM and SGLang use the <strong>OpenAI-compatible API format</strong>, you can switch between HuatuoGPT, GPT-4, DeepSeek, or any other model by simply changing the <code>base_url</code> in your client code. The application layer doesn't need to change — making it trivial to A/B test or migrate later.
     </div>
   </div>
 </section>
