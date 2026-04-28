@@ -346,6 +346,7 @@
     <a href="#try">8. How to Try</a>
     <a href="#hosting">9. Hosting &amp; Cost</a>
     <a href="#interact">10. Using the API</a>
+    <a href="#openclaw">11. OpenClaw Integration</a>
     <a href="#refs">References</a>
   </div>
 </nav>
@@ -1001,6 +1002,120 @@ for chunk in stream:
 
     <div class="callout info">
       <strong>Key Point:</strong> Because vLLM and SGLang use the <strong>OpenAI-compatible API format</strong>, you can switch between HuatuoGPT, GPT-4, DeepSeek, or any other model by simply changing the <code>base_url</code> in your client code. The application layer doesn't need to change — making it trivial to A/B test or migrate later.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 11. OPENCLAW INTEGRATION ═══════════ -->
+<section id="openclaw">
+  <div class="container">
+    <h2><span class="num blue">11</span> OpenClaw Agent Integration</h2>
+
+    <p><strong>Yes, HuatuoGPT can power an OpenClaw agent.</strong> OpenClaw has first-class support for any OpenAI-compatible API endpoint — the same format that vLLM and SGLang expose. You configure HuatuoGPT as a custom model provider in <code>openclaw.json</code>, then the agent uses it for all LLM calls.</p>
+
+    <h3>11.1 Configuration</h3>
+    <p>Add this to your <code>~/.openclaw/openclaw.json</code> (or <code>models.json</code>):</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;">{
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "huatuogpt": {
+        "baseUrl": "http://your-instance:8000/v1",
+        "apiKey": "not-needed",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "HuatuoGPT-o1-7B",
+            "name": "HuatuoGPT o1 7B",
+            "reasoning": true,
+            "input": ["text"],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 32768,
+            "maxTokens": 2048
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "huatuogpt/HuatuoGPT-o1-7B"
+      },
+      "models": {
+        "huatuogpt/HuatuoGPT-o1-7B": {}
+      }
+    }
+  }
+}</pre>
+
+    <h3>11.2 How It Works</h3>
+    <div style="background:#f5f5f5;border-radius:8px;padding:20px;font-family:var(--mono);font-size:12px;line-height:2;overflow-x:auto;white-space:nowrap;">
+      <span style="color:var(--accent2);">OpenClaw Agent</span>
+      <span style="color:var(--muted);"> ──HTTP/1.1──▶ </span>
+      <span style="color:var(--purple);">[vLLM / SGLang Server]</span>
+      <span style="color:var(--muted);"> ──▶ </span>
+      <span style="color:var(--orange);">[GPU: RTX 4090 / A100]</span>
+      <br>
+      <span style="color:var(--muted);">    POST /v1/chat/completions              HuatuoGPT-o1-7B</span>
+      <br>
+      <span style="color:var(--muted);">    Authorization: Bearer not-needed        Running locally</span>
+    </div>
+
+    <h3>11.3 Using HuatuoGPT in an OpenClaw Medical Agent Workspace</h3>
+    <p>Create a dedicated workspace for a medical assistant agent:</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;">~/.openclaw/workspaces/med-assistant/
+├── AGENTS.md        # Medical consultation guidelines
+├── SOUL.md          # Professional, empathetic tone
+├── USER.md          # Patient preferences, language
+├── IDENTITY.md      # Name, scope, capabilities
+├── TOOLS.md         # API keys for hospital systems
+└── skills/          # Medical-specific skills
+    └── triage/
+        └── SKILL.md # Symptom triage instructions</pre>
+
+    <h3>11.4 vLLM Auto-Discovery</h3>
+    <p>If you set an env var and don't explicitly define a provider, OpenClaw auto-discovers vLLM:</p>
+
+<pre style="background:#f5f5f5;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;overflow-x:auto;line-height:1.5;">export VLLM_API_KEY="not-needed"
+# OpenClaw will query http://127.0.0.1:8000/v1/models
+# and auto-register all loaded models</pre>
+
+    <p>The default auto-discovery URL is <code>http://127.0.0.1:8000/v1</code>. For SGLang (default port 30000) or remote instances, define the provider explicitly as shown above.</p>
+
+    <h3>11.5 Capabilities &amp; Limitations as an OpenClaw Backend</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>Supported?</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Chat completions</td><td class="yes">Yes</td><td>Standard /v1/chat/completions</td></tr>
+          <tr><td>Streaming</td><td class="yes">Yes</td><td>OpenClaw supports SSE streaming</td></tr>
+          <tr><td>Tool calling / function calling</td><td class="no">No</td><td>HuatuoGPT-o1 wasn't trained on tool use. OpenClaw will still work but without tool/function-call structured output.</td></tr>
+          <tr><td>Multi-turn conversation</td><td class="yes">Yes</td><td>OpenClaw manages conversation history; model handles context</td></tr>
+          <tr><td>Vision / image input</td><td class="yes">Yes (Vision model)</td><td>HuatuoGPT-Vision-7B supports images; standard text model does not</td></tr>
+          <tr><td>System prompt</td><td class="yes">Yes</td><td>OpenClaw injects system messages as configured</td></tr>
+          <tr><td>Reasoning / thinking</td><td class="yes">Yes</td><td>o1-variant models output ## Thinking blocks; set <code>reasoning: true</code> in config</td></tr>
+          <tr><td>Chinese language</td><td class="yes">Yes</td><td>Primary strength — excellent Chinese medical conversation</td></tr>
+          <tr><td>Zero cost per token</td><td class="yes">Yes</td><td>Self-hosted GPU means no API fees. Only hardware + electricity.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>Architecture Note:</strong> OpenClaw's agent loop (SOUL → AGENTS → instructions → model call → action) works seamlessly with HuatuoGPT. The only missing piece is <strong>tool calling</strong> — HuatuoGPT can't output structured JSON for function calls. For medical triage use cases (symptom → department suggestion), this isn't an issue since the conversation flow is textual. If you need tool integration (e.g., querying hospital databases), use OpenClaw's gateway layer or a LiteLLM proxy to add tool-calling support.
+    </div>
+
+    <div class="callout good">
+      <strong>Bottom Line:</strong> HuatuoGPT is a viable, zero-cost-per-token LLM backend for an OpenClaw agent specializing in Chinese medical triage and consultation. Deploy on RunPod ($0.44/hr RTX 4090) → configure as provider in openclaw.json → your agent is live. The main trade-off: you lose tool calling, but gain full data privacy, no API costs, and Apache-2.0 license freedom.
     </div>
   </div>
 </section>
